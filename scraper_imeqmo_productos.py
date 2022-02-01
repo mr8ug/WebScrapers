@@ -65,8 +65,8 @@ class imeqmo_Scraper():
         return producto
 
 
-#print("\nIMEQMO")
-#imeqmo = imeqmo_Scraper("https://www.imeqmo.com/shop/product/bx8070110100f-procesador-intel-core-i3-10100f-3-6ghz-10th-gen-13250?category=11", "2")
-#dataImeqmo = imeqmo.getProducto()
-#print(dataImeqmo['nombre'], dataImeqmo['precion'], dataImeqmo['precioe'], dataImeqmo['imagen'], dataImeqmo['subtotale'])
+print("\nIMEQMO")
+imeqmo = imeqmo_Scraper("https://www.imeqmo.com/shop/product/bx8070110100f-procesador-intel-core-i3-10100f-3-6ghz-10th-gen-13250?category=11", "2")
+dataImeqmo = imeqmo.getProducto()
+print(dataImeqmo['nombre'], dataImeqmo['precion'], dataImeqmo['precioe'], dataImeqmo['imagen'], dataImeqmo['subtotale'])
 

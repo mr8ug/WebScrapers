@@ -1,8 +1,21 @@
-
 from audioop import add
-from unittest import FunctionTestCase
+from math import prod
+from os import path
+import re
+from urllib import response
+from webbrowser import Chrome
+from click import option
+from itsdangerous import exc
+from matplotlib.pyplot import cla
 import requests
 from bs4 import BeautifulSoup
+
+from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+import time
+from requests_html import HTMLSession
+from webdriver_manager.chrome import ChromeDriverManager
+
 
 
 class PC():
@@ -29,57 +42,76 @@ class PC():
         self.fan = [] #https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-VENT
 
         #obtener la data
-        self.getData()
-    def objProducto(self, url, nombre, precio_normal, precio_efectivo, img, existencia):
+        self.getIntelaf()
+        self.getImeqmo()
+
+    def objProducto(self, url, nombre, precio_normal, precio_efectivo, img, existencia, tienda):
         producto = {
             'url':url,
             'nombre':nombre,
             'precio_normal': precio_normal,
             'precio_efectivo': precio_efectivo,
             'imagen':img,
-            'existencia':existencia
+            'existencia':existencia,
+            'tienda':tienda
         }
 
         return producto
-    def getData(self):
+    def getIntelaf(self):
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('window-size= 1920x1080')
+        
+
         urls = ['https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-CASES',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-UNIDAD',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-CASE-COOL',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=DISCO-DURO-INT',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=TODOS-SSD',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-FUENTES',
-                'https://www.intelaf.com/Precios_stock_resultado.aspx?area=MEM-RAM-DDR2',
-                'https://www.intelaf.com/Precios_stock_resultado.aspx?area=MEM-RAM-DDR3',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=MEM-RAM-DDR4',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-MBOARD-AMD',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-MBOARD-INTEL',
-                'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-MBOARD-PROC',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=PROC-VENT',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=PROC-AMD',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-PROC-INTEL',
-                'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-TARJ-PCI',
-                'https://www.intelaf.com/Precios_stock_resultado.aspx?area=AUDIO-TARJ-SON',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=TARJ-VIDEO-NVIDIA',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=TARJ-VIDEO-RADEON',
                 'https://www.intelaf.com/Precios_stock_resultado.aspx?area=COMPU-VENT'
                 ]
         for url in urls:
-            response = requests.get(url)
-
-            html = BeautifulSoup(response.text, 'html.parser')
-
-            productos = html.findAll('div', class_='col-xs-12 col-md-4')
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('window-size= 1920x1080')
+            driver = ''
+            try:
+                driver = webdriver.Chrome(options = chrome_options)
+            except:
+                driver = webdriver.Chrome(ChromeDriverManager().install(), options = chrome_options)
+            #print('Porcentaje', str((int(urls.index(url))/len(urls))*100) )
             
+
+            driver.get(str(url))
+            time.sleep(10)
+            
+            response=driver.page_source
+            html = BeautifulSoup(response, "html.parser")
+
+    
+            productos = html.findAll('div', class_='col-xs-12 col-md-6 col-lg-4')
+            
+            #print(productos)
 
             for p in productos:
                 #try:
                 addProducto =self.objProducto(
-                    'https://intelaf.com/'+p.contents[0].next_element.contents[0].next_element.attrs['name'],
-                    p.contents[0].contents[1].contents[1].previous_sibling.text,
-                    self.fixPrinceNormal(p),
-                    str(p.contents[0].previous_element.next_element.contents[1].contents[2].text).replace("Beneficio Efectivo: Q", '').replace("TECNOPROMO: Q", '').replace(',',''),
-                    self.fixImg(p.next_element.contents[0].attrs['style']),
-                    p.next_element.attrs['title'].replace('EXISTENCIAS\\n','').split('\n')
+                    'https://intelaf.com/'+p.contents[1].contents[1].contents[1].contents[1].attrs['name'],
+                    p.contents[1].text,
+                    self.fixPrinceNormal(p.contents[1].contents[3].contents[3].text),
+                    str(p.contents[1].contents[3].contents[5].text).replace("Beneficio Efectivo: Q", '').replace("TECNOPROMO: Q", '').replace(',',''),
+                    self.fixImg(p.contents[1].contents[1].attrs['style']),
+                    str(p.contents[1].attrs['title']),
+                    'INTELAF'
                 )
 
                 if str(url).endswith('COMPU-CASES'):
@@ -143,7 +175,124 @@ class PC():
                     self.fan.append(addProducto)
             #except Exception as e:
             #    print('Error',e,' con:', str(p), '\n\n')
-            
+    
+    def getImeqmo(self):
+        urls = ['https://www.imeqmo.com/shop/category/componentes-de-pc-cases-9',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-discos-duros-internos-23',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-enfriadores-y-ventiladores-150',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-fuentes-de-poder-28',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-memoria-ram-12',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-motherboard-10',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-procesadores-11',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-quemadoras-30',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-tarjetas-de-video-19',
+                'https://www.imeqmo.com/shop/category/componentes-de-pc-unidades-de-estado-solido-144'
+
+                ]
+
+        for url in urls:
+            response = requests.get(url)
+
+            html = BeautifulSoup(response.text, 'html.parser')
+
+            productos = html.findAll('td', class_='oe_product oe_grid te_t_image')
+            #imagen productos[1].contents[1].contents[1].contents[3].contents[1].contents[1].contents[1].attrs['content']
+            #print(productos)
+            for p in productos:
+                #get existencia
+                urlProducto = ''
+                try:
+                    urlProducto = 'https://www.imeqmo.com'+str(p.contents[1].contents[1].contents[3].contents[1].contents[1].attrs['href'])
+                except:
+                    urlProducto = 'Error'
+                precio = str(p.text)
+                precio2 = re.sub('\n+','',precio)
+
+                nombre = precio2.split('-')
+                nombreProducto = ''
+                try:
+                    imagen = p.contents[1].contents[1].contents[3].contents[1].contents[1].contents[1].attrs['alt']
+                except:
+                    nombreProducto = str(nombre[0])
+                precio3 = str(re.sub('Q\xa0','|', precio2)).split('|')
+                precioNormal = str(precio3[1]).replace(',','')
+                precio4 = str(precio3[2]).split('QTQ')
+                precio5 = str(precio4[0]).split('.00')
+
+                precioEfectivo = str(str(precio5[0]).replace(',','')+'.00')
+
+                imagen = ''
+                try:
+                    imagen = p.contents[1].contents[1].contents[3].contents[1].contents[1].contents[1].attrs['content']
+                except:
+                    imagen = 'Error'
+                #print(precioNormal, precioEfectivo)
+                addProducto = self.objProducto(
+                    urlProducto,
+                    nombreProducto,
+                    precioNormal,
+                    precioEfectivo,
+                    imagen,
+                    'Hay Existencia',
+                    'IMEQMO'
+                )
+
+                if 'cases' in str(url):
+                    self.case.append(addProducto)
+
+                if 'quemadoras' in str(url):
+                    self.lectorcd.append(addProducto)
+
+                if 'enfriadores-y-ventiladores' in str(url):
+                    if ('enfriador' in str(addProducto['nombre']).lower()):
+                        self.cpucooler.append(addProducto)
+                    else:
+                        self.fan.append(addProducto)
+
+                if 'discos-duros-internos' in str(url):
+                    self.disco.append(addProducto)
+
+                if 'unidades-de-estado-solido' in str(url):
+                    self.ssd.append(addProducto)
+
+                if 'fuentes-de-poder' in str(url):
+                    self.fuente.append(addProducto)
+
+                if 'memoria-ram' in str(url):
+                    if ('ddr2' in str(addProducto['nombre']).lower()):
+                        self.ddr2.append(addProducto)
+
+                    if ('ddr3' in str(addProducto['nombre']).lower()):
+                        self.ddr3.append(addProducto)
+
+                    if ('ddr4' in str(addProducto['nombre']).lower()):
+                        self.ddr4.append(addProducto)
+                
+
+                if 'motherboard' in str(url):
+                    if ('LGA' in str(addProducto['nombre']).lower()):
+                        self.moboIntel.append(addProducto)
+                    else:
+                        self.moboAMD.append(addProducto)
+
+                              
+                if 'procesadores' in str(url):
+                    if ('procesador' in str(addProducto['nombre']).lower()):
+                        if ('intel' in str(addProducto['nombre']).lower()):
+                            self.procIntel.append(addProducto)
+                        if ('amd' in str(addProducto['nombre']).lower()):
+                            self.procAMD.append(addProducto)
+                    else:
+                        self.pasta.append(addProducto)
+                    
+                if 'tarjetas-de-video' in str(url):
+                    if ('tarjeta de video' in str(addProducto['nombre']).lower()):
+                        if('geforce' in str(addProducto['nombre']).lower()):
+                            self.tarjNvidia.append(addProducto)
+                        else:
+                            self.tarjRadeon.append(addProducto)
+
+                
 
     def fixImg(self, style):
         imgLink = ''
@@ -159,9 +308,10 @@ class PC():
     def fixPrinceNormal(self, product):
         normal = ''
         try:
-            normal = str(product.contents[0].contents[1].contents[1].contents[0].contents[1].text).replace('Q','').replace(',','').strip()
+            
+            normal = str(product).replace('Q','').replace(',','').replace('Precio normal:', '').strip()
         except:
-            normal = str(product.contents[0].contents[1].contents[2].contents[0].text).replace('Q','').replace(',','').strip()
+            normal = 'F0.00'
         return normal
 
 
@@ -225,6 +375,9 @@ class PC():
     def getFans(self):
         return self.fan
 
-    
-
-
+#*
+#start = time.time()
+#pd = PC()
+#time.sleep(1)
+#end = time.time()
+#print(f"Runtime of the program is {end - start}")
