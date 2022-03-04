@@ -1,4 +1,4 @@
-import base64
+
 from tkinter import messagebox
 
 import tkinter.ttk as Ttk
